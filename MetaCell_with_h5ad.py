@@ -24,3 +24,7 @@ mc.pl.exclude_genes(adata, excluded_gene_names=EXCLUDED_GENE_NAMES, excluded_gen
 
 # The next decision we need to make is which cells to exclude due to containing too many UMIs in the excluded genes. If a cell contains "too many" excluded (mainly mytochondrial) gene UMIs, this may indicate a badly sampled cell, leading to very skewed results. Again, the exact threshold depends on both the technology and the dataset. Here we resort to looking at the distribution of the fraction of excluded genes in each cell, and manually picking the threshold.
 mc.tl.compute_excluded_gene_umis(adata)
+
+# pick a maximal fraction of excluded UMIs in each cell.
+PROPERLY_SAMPLED_MAX_EXCLUDED_GENES_FRACTION = 0.25
+
