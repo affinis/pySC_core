@@ -17,4 +17,4 @@ pip install seacells
 mamba install jupyterlab
 
 #download notebook file for learning of 'seacells'
-wget https://github.com/dpeerlab/SEACells/blob/main/notebooks/SEACell_computation.ipynb
+#https://github.com/dpeerlab/SEACells/blob/main/notebooks/SEACell_computation.ipynb
