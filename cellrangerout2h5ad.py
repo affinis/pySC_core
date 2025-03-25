@@ -3,7 +3,7 @@
 import scanpy as sc
 import argparse
 
-parser = argparse.ArgumentParser(description="A script that convert .loom file into .h5ad file.")
+parser = argparse.ArgumentParser(description="A script that convert cellranger out file into .h5ad file.")
 
 parser.add_argument("-i", "--input", type=str, help="cellranger filtered feature bc matrix dir name with features.tsv.gz, barcodes.tsv.gz, matrix.mtx.gz")
 parser.add_argument("-o", "--output", type=str, help="h5ad filename, with .h5ad")
