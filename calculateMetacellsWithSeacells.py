@@ -25,7 +25,7 @@ matplotlib.rcParams['figure.dpi'] = 100
 parser = argparse.ArgumentParser(description="A script that convert cellranger out file into .h5ad file.")
 
 parser.add_argument("-i", "--input", type=str, help="cellranger filtered feature bc matrix dir name with features.tsv.gz, barcodes.tsv.gz, matrix.mtx.gz")
-parser.add_argument("-n", "--num.metacells", type=int, help="number of metacells")
+parser.add_argument("-r", "--ratio", type=float, help="num metacells/num total cells")
 parser.add_argument("-a", "--cell.annotations", type=str, help="an annotation file")
 
 args = parser.parse_args()
@@ -100,7 +100,7 @@ raw_ad.obs_names, raw_ad.var_names = ad.obs_names, ad.var_names
 adata.raw = raw_ad
 
 ## Core parameters 
-n_SEACells = args.num.metacells
+n_SEACells = round(args.ratio*adata.n_obs)
 build_kernel_on = 'X_pca' # key in ad.obsm to use for computing metacells
                           # This would be replaced by 'X_svd' for ATAC data
 
@@ -120,7 +120,7 @@ M = model.kernel_matrix
 model.initialize_archetypes()
 
 # Plot the initilization to ensure they are spread across phenotypic space
-SEACells.plot.plot_initialization(adata, model)
+# SEACells.plot.plot_initialization(adata, model)
 
 model.fit(min_iter=10, max_iter=50)
 
