@@ -14,19 +14,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 
-# Some plotting aesthetics
-%matplotlib inline
-
 sns.set_style('ticks')
 matplotlib.rcParams['figure.figsize'] = [4, 4]
-matplotlib.rcParams['figure.dpi'] = 100
+matplotlib.rcParams['figure.dpi'] = 256
 
 #parse arguments
 parser = argparse.ArgumentParser(description="A script that convert cellranger out file into .h5ad file.")
 
 parser.add_argument("-i", "--input", type=str, help="cellranger filtered feature bc matrix dir name with features.tsv.gz, barcodes.tsv.gz, matrix.mtx.gz")
-parser.add_argument("-r", "--ratio", type=float, help="num metacells/num total cells")
-parser.add_argument("-a", "--cell.annotations", type=str, help="an annotation file")
+parser.add_argument("-r", "--ratio", type=float, help="num metacells/num total cells",default=0.01)
+parser.add_argument("-a", "--cell_annotations", type=str, help="an annotation file")
+parser.add_argument("-o", "--output", type=str, help="output directory")
+parser.add_argument("-p", "--cell_prefix", type=str, help="sample prefix")
 
 args = parser.parse_args()
 
@@ -34,6 +33,7 @@ args = parser.parse_args()
 cellranger_dir = args.input
 
 # Read the data
+print("reading sc data...")
 adata=sc.read_10x_mtx(cellranger_dir, var_names='gene_symbols')
 
 # mitochondrial genes, "MT-" for human, "Mt-" for mouse
@@ -53,27 +53,32 @@ sc.pp.filter_genes(adata, min_cells=3)
 # Saving count data
 adata.layers["counts"] = adata.X.copy()
 # Normalizing to median total counts
+print("normalizing data...")
 sc.pp.normalize_total(adata)
 # Logarithmize the data
 sc.pp.log1p(adata)
 
 # finding highly variable genes
+print("finding highly variable genes...")
 sc.pp.highly_variable_genes(adata, n_top_genes=2000)
 
 # performing PCA
+print("performing PCA...")
 sc.tl.pca(adata)
 
 # compute neighborhood graph
 sc.pp.neighbors(adata)
 
 # run UMAP
+print("performing UMAP...")
 sc.tl.umap(adata)
 
 # read cell annotations
-cell_annotations = pd.read_csv(args.num.metacells, sep='\t')
+print("reading cell annotation...")
+cell_annotations = pd.read_csv(args.cell_annotations, sep='\t')
 
 # add prefix to cell barcodes
-adata.obs.index="TF_SLY_CT9_"+adata.obs.index.astype(str)
+adata.obs.index=args.cell_prefix+"_"+adata.obs.index.astype(str)
 
 # Check if all cells in the TSV exist in adata
 missing_cells = set(cell_annotations['index']) - set(adata.obs_names)
@@ -96,10 +101,11 @@ adata.obs['manual_NI'] = cell_annotations['manual_NI']
 # Copy the counts to ".raw" attribute of the anndata since it is necessary for downstream analysis
 # This step should be performed after filtering 
 raw_ad = sc.AnnData(adata.X)
-raw_ad.obs_names, raw_ad.var_names = ad.obs_names, ad.var_names
+raw_ad.obs_names, raw_ad.var_names = adata.obs_names, adata.var_names
 adata.raw = raw_ad
 
 ## Core parameters 
+print("start to run seacells...")
 n_SEACells = round(args.ratio*adata.n_obs)
 build_kernel_on = 'X_pca' # key in ad.obsm to use for computing metacells
                           # This would be replaced by 'X_svd' for ATAC data
@@ -128,3 +134,20 @@ SEACell_ad = SEACells.core.summarize_by_SEACell(adata, SEACells_label='SEACell',
 SEACell_soft_ad = SEACells.core.summarize_by_soft_SEACell(adata, model.A_, celltype_label='predicted.celltype.l1.5',
                                                           summarize_layer='raw', minimum_weight=0.05)
 
+# Save counts as CSV (genes × cells)
+pd.DataFrame(
+    SEACell_ad.X.toarray().T,
+    index=SEACell_ad.var_names,
+    columns=SEACell_ad.obs_names
+).to_csv(args.output+"/"+args.cell_prefix+"_"+"metacells.csv")
+
+# Save metadata
+adata.obs[["SEACell"]]=args.cell_prefix+"_"+adata.obs[["SEACell"]]
+pd.DataFrame(adata.obs).to_csv(args.output+"/"+args.cell_prefix+"_"+"metadata.csv")
+
+# Save metacellplot
+plot2d_name=args.output+"/"+args.cell_prefix+"_"+"metacells2Dplot.pdf"
+SEACells.plot.plot_2D(adata, key='X_umap', colour_metacells=True,show=False,save_as=plot2d_name)
+
+SEACell_size_name=args.output+"/"+args.cell_prefix+"_"+"metacells_size_plot.pdf"
+SEACells.plot.plot_SEACell_sizes(adata, bins=5,show=False,save_as=SEACell_size_name)
