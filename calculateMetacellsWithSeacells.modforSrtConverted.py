@@ -81,15 +81,15 @@ cell_annotations = pd.read_csv(args.cell_annotations, sep='\t')
 adata.obs.index=adata.obs.index.astype(str)
 
 # Check if all cells in the TSV exist in adata
-missing_cells = set(cell_annotations['index']) - set(adata.obs_names)
+missing_cells = set(cell_annotations['cell_id']) - set(adata.obs_names)
 if missing_cells:
     print(f"Warning: {len(missing_cells)} cells in TSV not found in AnnData.")
 
 # Filter annotations to only include cells present in adata
-cell_annotations = cell_annotations[cell_annotations['index'].isin(adata.obs_names)]
+cell_annotations = cell_annotations[cell_annotations['cell_id'].isin(adata.obs_names)]
 
 # Set cell_id as index (if not already)
-cell_annotations = cell_annotations.set_index('index')
+cell_annotations = cell_annotations.set_index('cell_id')
 
 # Ensure the order matches adata.obs
 cell_annotations = cell_annotations.reindex(adata.obs_names)
@@ -97,7 +97,7 @@ cell_annotations = cell_annotations.reindex(adata.obs_names)
 # Add cell_type to adata.obs
 adata.obs['manual.level1'] = cell_annotations['manual.level1']
 adata.obs['manual.level2'] = cell_annotations['manual.level2']
-adata.obs['predicted.celltype.l1.5'] = cell_annotations['predicted.celltype.l1.5']
+adata.obs['predicted.celltype.l2'] = cell_annotations['predicted.celltype.l2']
 adata.obs['manual_NI'] = cell_annotations['manual_NI']
 
 # Copy the counts to ".raw" attribute of the anndata since it is necessary for downstream analysis
@@ -133,7 +133,7 @@ model.initialize_archetypes()
 model.fit(min_iter=10, max_iter=50)
 
 SEACell_ad = SEACells.core.summarize_by_SEACell(adata, SEACells_label='SEACell', summarize_layer='raw')
-SEACell_soft_ad = SEACells.core.summarize_by_soft_SEACell(adata, model.A_, celltype_label='predicted.celltype.l1.5',
+SEACell_soft_ad = SEACells.core.summarize_by_soft_SEACell(adata, model.A_, celltype_label='predicted.celltype.l2',
                                                           summarize_layer='raw', minimum_weight=0.05)
 
 # Save counts as CSV (genes × cells)

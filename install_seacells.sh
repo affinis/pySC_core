@@ -5,7 +5,7 @@
 
 set -e
 
-#create environment
+#create environment, mamba can be replaced by conda 
 mamba create -n seacells python=3.8
 mamba activate seacells
 
@@ -14,6 +14,7 @@ pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip install seacells
 
 #install jupyterlab for learning of 'seacells'
+# notice!!! jupyterlab must be installed as seacells need it to run
 mamba install jupyterlab
 
 #download notebook file for learning of 'seacells'
